@@ -20,6 +20,7 @@ import $ from 'jquery';
   var layers = {
     dim0: {
       name: "Overworld",
+      dimensionId: 0,
       attribution:
         '<a href="https://github.com/hrmorley34/papyruscs">PapyrusCS</a>',
       minNativeZoom: 15,
@@ -156,7 +157,9 @@ import $ from 'jquery';
         }),
         visible: idx == 0
       });
-      tileLayer.metaLayerKey = layerKey;
+      // Add a dimensionId from the layer key if missing (dim1 -> 1, dim0_stronghold -> 0)
+      layer.dimensionId ??= parseInt(layerKey.substring(3));
+      tileLayer.metaLayerKey = { dimensionId: layer.dimensionId, layerKey, type: "map" };
       return tileLayer;
     });
 
@@ -233,8 +236,8 @@ import $ from 'jquery';
               const runtimeLayers = map.getLayers();
               runtimeLayers.forEach(function (runtimeLayer) {
                 runtimeLayer.setVisible(
-                  runtimeLayer.metaLayerKey == layerKey ||
-                  runtimeLayer.metaLayerKey == "players_" + layerKey.substring(0, 4)
+                  (runtimeLayer.metaLayerKey.layerKey == layerKey && runtimeLayer.metaLayerKey.type == "map")
+                  || (runtimeLayer.metaLayerKey.dimensionId == layer.dimensionId && runtimeLayer.metaLayerKey.type == "player")
                 ); // show image layer, and player layer based on dimension
               });
 
@@ -364,7 +367,7 @@ import $ from 'jquery';
         source: vectorSource
       });
 
-      vectorLayer.metaLayerKey = "players_dim" + dimensionId;
+      vectorLayer.metaLayerKey = { layerKey: "players_dim" + dimensionId, dimensionId, type: "player" };
 
       if (dimensionId != 0) {
         // initially display only overworld players
