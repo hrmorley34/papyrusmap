@@ -3,12 +3,12 @@ import '../css/style.css';
 import 'bootstrap';
 import '~bootstrap/scss/bootstrap.scss';
 
-import * as ol from 'ol';
-import * as ol_control from 'ol/control';
-import * as ol_geom from 'ol/geom';
-import * as ol_layer from 'ol/layer';
-import * as ol_proj from 'ol/proj';
-import * as ol_source from 'ol/source';
+import { Feature, Map, View } from 'ol';
+import { Attribution, Control, Zoom } from 'ol/control';
+import { Point } from 'ol/geom';
+import { Tile, Vector as VectorLayer } from 'ol/layer';
+import { Projection } from 'ol/proj';
+import { Vector as VectorSource, XYZ } from 'ol/source';
 import * as ol_style from 'ol/style';
 import TileGrid from 'ol/tilegrid/TileGrid';
 import '~ol/ol.css';
@@ -99,7 +99,7 @@ import $ from 'jquery';
   const minecraftTilesAtMostZoomedInLevel = config.blocksPerTile;
 
   // Use a projection where pixels have a 1:1 ratio with the screen at zoom level 0.
-  const projection = new ol_proj.Projection({
+  const projection = new Projection({
     code: "ZOOMIFY",
     units: "pixels",
     extent: [
@@ -131,8 +131,8 @@ import $ from 'jquery';
     .sort()
     .map(function (layerKey, idx) {
       const layer = layers[layerKey];
-      const tileLayer = new ol_layer.Tile({
-        source: new ol_source.XYZ({
+      const tileLayer = new Tile({
+        source: new XYZ({
           tileUrlFunction: function (tileCoord, pixelRatio, projection) {
             const z = tileCoord[0];
             const x = tileCoord[1];
@@ -160,15 +160,13 @@ import $ from 'jquery';
       return tileLayer;
     });
 
-  const initialLayer = layers[Object.keys(layers).sort()[0]];
-
   if (Object.keys(layers).sort()[0] == "dim0_stronghold") {
     document.getElementById("map").style.background = "#fff";
   } else {
     document.getElementById("map").style.background = "#202020";
   }
 
-  const view = new ol.View({
+  const view = new View({
     projection: projection,
     center: [0, 0],
     zoom: 0,
@@ -176,143 +174,137 @@ import $ from 'jquery';
     maxZoom: config.globalMaxZoom - config.globalMinZoom
   });
 
-  const PapyrusControls = (function (Control) {
-    class PapyrusControls extends Control {
-      constructor(opt_options) {
-        const options = opt_options || {};
+  class PapyrusControls extends Control {
+    constructor(opt_options) {
+      const options = opt_options || {};
 
-        const element = document.createElement("div");
-        element.className = "layer-select ol-unselectable";
+      const element = document.createElement("div");
+      element.className = "layer-select ol-unselectable";
 
-        const card = document.createElement("div");
-        card.className = "card";
-        element.appendChild(card);
+      const card = document.createElement("div");
+      card.className = "card";
+      element.appendChild(card);
 
-        const cardBody = document.createElement("div");
-        cardBody.className = "card-body p-3 px-3";
-        card.appendChild(cardBody);
+      const cardBody = document.createElement("div");
+      cardBody.className = "card-body p-3 px-3";
+      card.appendChild(cardBody);
 
-        const form = document.createElement("form");
-        cardBody.appendChild(form);
+      const form = document.createElement("form");
+      cardBody.appendChild(form);
 
-        let currentSelectedLayer = Object.keys(layers).sort()[0];
-        let rememberedCenters = {};
-        let rememberedZoom = {};
+      let currentSelectedLayer = Object.keys(layers).sort()[0];
+      let rememberedCenters = {};
+      let rememberedZoom = {};
 
-        Object.keys(layers)
-          .sort()
-          .forEach(function (layerKey, idx) {
-            const layer = layers[layerKey];
+      Object.keys(layers)
+        .sort()
+        .forEach(function (layerKey, idx) {
+          const layer = layers[layerKey];
 
-            const radioContainer = document.createElement("div");
-            radioContainer.className = "custom-control custom-radio";
-            // radioContainer.className = "form-check";
+          const radioContainer = document.createElement("div");
+          radioContainer.className = "custom-control custom-radio";
+          // radioContainer.className = "form-check";
 
-            const radioInput = document.createElement("input");
-            radioInput.type = "radio";
-            radioInput.id = layerKey;
-            radioInput.name = "layers";
-            radioInput.className = "custom-control-input";
-            // radioInput.className = "form-check-input";
-            radioInput.checked = idx == 0;
-            radioInput.value = layerKey;
-            radioContainer.appendChild(radioInput);
+          const radioInput = document.createElement("input");
+          radioInput.type = "radio";
+          radioInput.id = layerKey;
+          radioInput.name = "layers";
+          radioInput.className = "custom-control-input";
+          // radioInput.className = "form-check-input";
+          radioInput.checked = idx == 0;
+          radioInput.value = layerKey;
+          radioContainer.appendChild(radioInput);
 
-            const radioLabel = document.createElement("label");
-            radioLabel.htmlFor = layerKey;
-            radioLabel.className = "custom-control-label";
-            // radioLabel.className = "form-check-label";
-            radioLabel.innerText = layer.name;
-            radioContainer.appendChild(radioLabel);
+          const radioLabel = document.createElement("label");
+          radioLabel.htmlFor = layerKey;
+          radioLabel.className = "custom-control-label";
+          // radioLabel.className = "form-check-label";
+          radioLabel.innerText = layer.name;
+          radioContainer.appendChild(radioLabel);
 
-            const selectLayer = function (e) {
-              if (layerKey == "dim0_stronghold") {
-                document.getElementById("map").style.background = "#fff";
+          const selectLayer = function (e) {
+            if (layerKey == "dim0_stronghold") {
+              document.getElementById("map").style.background = "#fff";
+            } else {
+              document.getElementById("map").style.background = "#202020";
+            }
+
+            if (currentSelectedLayer != layerKey) {
+              const runtimeLayers = map.getLayers();
+              runtimeLayers.forEach(function (runtimeLayer) {
+                runtimeLayer.setVisible(
+                  runtimeLayer.metaLayerKey == layerKey ||
+                  runtimeLayer.metaLayerKey == "players_" + layerKey.substring(0, 4)
+                ); // show image layer, and player layer based on dimension
+              });
+
+              const oldFocusGroup = currentSelectedLayer.substring(0, 4);
+              const newFocusGroup = layerKey.substring(0, 4);
+
+              rememberedCenters[oldFocusGroup] = view.getCenter();
+              if (rememberedCenters[newFocusGroup] === undefined) {
+                // refocus the map to 0, 0
+                view.setCenter([0, 0]);
               } else {
-                document.getElementById("map").style.background = "#202020";
+                // set back to where we were
+                view.setCenter(rememberedCenters[newFocusGroup]);
               }
 
-              if (currentSelectedLayer != layerKey) {
-                const runtimeLayers = map.getLayers();
-                runtimeLayers.forEach(function (runtimeLayer) {
-                  runtimeLayer.setVisible(
-                    runtimeLayer.metaLayerKey == layerKey ||
-                    runtimeLayer.metaLayerKey == "players_" + layerKey.substr(0, 4)
-                  ); // show image layer, and player layer based on dimension
-                });
-
-                const oldFocusGroup = currentSelectedLayer.substr(0, 4);
-                const newFocusGroup = layerKey.substr(0, 4);
-
-                rememberedCenters[oldFocusGroup] = view.getCenter();
-                if (rememberedCenters[newFocusGroup] === undefined) {
-                  // refocus the map to 0, 0
-                  view.setCenter([0, 0]);
-                } else {
-                  // set back to where we were
-                  view.setCenter(rememberedCenters[newFocusGroup]);
-                }
-
-                rememberedZoom[oldFocusGroup] = view.getZoom();
-                view.setMinZoom(layer.minNativeZoom - config.globalMinZoom);
-                view.setMaxZoom(layer.maxNativeZoom - config.globalMinZoom);
-                if (rememberedZoom[newFocusGroup] === undefined) {
-                  // rezoom the map to minimum zoom
-                  view.setZoom(layer.minNativeZoom - config.globalMinZoom);
-                } else {
-                  // set back to where we were
-                  view.setZoom(rememberedZoom[newFocusGroup]);
-                }
-
-                const radios = $("input[name='layers']");
-                radios.each(function (idx, elem) {
-                  if (elem.value == layerKey) {
-                    elem.checked = true;
-                  } else {
-                    elem.checked = false;
-                  }
-                });
-
-                currentSelectedLayer = layerKey;
+              rememberedZoom[oldFocusGroup] = view.getZoom();
+              view.setMinZoom(layer.minNativeZoom - config.globalMinZoom);
+              view.setMaxZoom(layer.maxNativeZoom - config.globalMinZoom);
+              if (rememberedZoom[newFocusGroup] === undefined) {
+                // rezoom the map to minimum zoom
+                view.setZoom(layer.minNativeZoom - config.globalMinZoom);
+              } else {
+                // set back to where we were
+                view.setZoom(rememberedZoom[newFocusGroup]);
               }
-            };
 
-            radioInput.addEventListener(
-              "click",
-              selectLayer.bind(this),
-              false
-            );
+              const radios = $("input[name='layers']");
+              radios.each(function (idx, elem) {
+                if (elem.value == layerKey) {
+                  elem.checked = true;
+                } else {
+                  elem.checked = false;
+                }
+              });
 
-            form.appendChild(radioContainer);
-          });
+              currentSelectedLayer = layerKey;
+            }
+          };
 
-        const hr = document.createElement("hr");
-        form.appendChild(hr);
+          radioInput.addEventListener(
+            "click",
+            selectLayer.bind(this),
+            false
+          );
 
-        locationElement = document.createElement("div");
-        locationElement.innerText = "X: 0, Z: 0";
-        form.appendChild(locationElement);
-
-        super({
-          element: element,
-          target: options.target
+          form.appendChild(radioContainer);
         });
-      }
+
+      const hr = document.createElement("hr");
+      form.appendChild(hr);
+
+      locationElement = document.createElement("div");
+      locationElement.innerText = "X: 0, Z: 0";
+      form.appendChild(locationElement);
+
+      super({
+        element: element,
+        target: options.target
+      });
     }
+  }
+  PapyrusControls.__proto__ = Control;
 
-    if (Control) PapyrusControls.__proto__ = Control;
-    // PapyrusControls.prototype = Object.create(Control && Control.prototype);
-
-    return PapyrusControls;
-  })(ol_control.Control);
-
-  map = new ol.Map({
+  map = new Map({
     target: "map",
     layers: tileLayers,
     view: view,
     controls: [
-      new ol_control.Zoom(),
-      new ol_control.Attribution(),
+      new Zoom(),
+      new Attribution(),
       new PapyrusControls()
     ]
   });
@@ -350,8 +342,8 @@ import $ from 'jquery';
         })
       });
 
-      var playerFeature = new ol.Feature({
-        geometry: new ol_geom.Point([
+      var playerFeature = new Feature({
+        geometry: new Point([
           (player.position[0] * zoomRatioForMaximumZoom) / minecraftTilesAtMostZoomedInLevel,
           (-player.position[2] * zoomRatioForMaximumZoom) / minecraftTilesAtMostZoomedInLevel
         ])
@@ -364,11 +356,11 @@ import $ from 'jquery';
     }
 
     for (var dimensionId = 0; dimensionId < 3; dimensionId++) {
-      var vectorSource = new ol_source.Vector({
+      var vectorSource = new VectorSource({
         features: playerFeatures[dimensionId]
       });
 
-      var vectorLayer = new ol_layer.Vector({
+      var vectorLayer = new VectorLayer({
         source: vectorSource
       });
 
