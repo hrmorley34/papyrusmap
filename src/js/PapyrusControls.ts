@@ -1,4 +1,4 @@
-import { PluggableMap, MapBrowserEvent } from 'ol'
+import { MapBrowserEvent, Map } from 'ol'
 import { Control } from 'ol/control'
 import { Coordinate } from 'ol/coordinate'
 import BaseLayer from 'ol/layer/Base'
@@ -28,15 +28,13 @@ export class Checkbox {
   constructor (label: string, name: string, showsForLayer?: MapLayerCheckFunction, appliesToLayer?: AnyLayerCheckFunction) {
     const id = `checkbox-${name}`
     const checkContainer = document.createElement('div')
-    checkContainer.className = 'custom-control custom-checkbox'
-    // checkContainer.className = 'form-check'
+    checkContainer.className = 'form-check'
 
     const checkInput = document.createElement('input')
     checkInput.type = 'checkbox'
     checkInput.id = id
     checkInput.name = name
-    checkInput.className = 'custom-control-input'
-    // checkInput.className = 'form-check-input'
+    checkInput.className = 'form-check-input'
     checkInput.checked = true
     checkInput.value = name
     checkContainer.appendChild(checkInput)
@@ -44,8 +42,7 @@ export class Checkbox {
 
     const checkLabel = document.createElement('label')
     checkLabel.htmlFor = id
-    checkLabel.className = 'custom-control-label'
-    // checkLabel.className = 'form-check-label'
+    checkLabel.className = 'form-check-label'
     checkLabel.innerText = label
     checkContainer.appendChild(checkLabel)
     this.element = checkContainer
@@ -136,7 +133,7 @@ export default class PapyrusControls extends Control {
     this.setLocationText(0, 0)
   }
 
-  setMap (map: PluggableMap | null): void {
+  setMap (map: Map | null): void {
     super.setMap(map)
     if (map === null) return
 
@@ -169,15 +166,13 @@ export default class PapyrusControls extends Control {
 
   addLayer (this: PapyrusControls, layer: MapTileLayer): void {
     const radioContainer = document.createElement('div')
-    radioContainer.className = 'custom-control custom-radio'
-    // radioContainer.className = 'form-check'
+    radioContainer.className = 'form-check'
 
     const radioInput = document.createElement('input')
     radioInput.type = 'radio'
     radioInput.id = layer.layerKey
     radioInput.name = 'layers'
-    radioInput.className = 'custom-control-input'
-    // radioInput.className = 'form-check-input'
+    radioInput.className = 'form-check-input'
     radioInput.checked = this.radios.length === 0
     radioInput.value = layer.layerKey
     radioContainer.appendChild(radioInput)
@@ -185,8 +180,7 @@ export default class PapyrusControls extends Control {
 
     const radioLabel = document.createElement('label')
     radioLabel.htmlFor = layer.layerKey
-    radioLabel.className = 'custom-control-label'
-    // radioLabel.className = 'form-check-label'
+    radioLabel.className = 'form-check-label'
     radioLabel.innerText = layer.layerData.name
     radioContainer.appendChild(radioLabel)
 
