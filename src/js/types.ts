@@ -130,4 +130,8 @@ export interface DataLayerCheckable extends DataLayerContents {
   addCheckbox: (checkbox: HTMLInputElement) => void
 }
 
+export function allCheckboxes (checkboxes: HTMLInputElement[]): boolean {
+  return checkboxes.reduce((bool, check) => bool && check.checked, true)
+}
+
 export type DataLayer = MapTileLayer | MarkerLayer

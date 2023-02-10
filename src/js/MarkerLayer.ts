@@ -5,7 +5,7 @@ import VectorLayer from 'ol/layer/Vector'
 import VectorSource from 'ol/source/Vector'
 
 import MapTileLayer from './MapTileLayer'
-import { DataLayerCheckable } from './types'
+import { allCheckboxes, DataLayerCheckable } from './types'
 
 export default class MarkerLayer extends VectorLayer<VectorSource<Geometry>> implements DataLayerCheckable {
   layerType: 'markers' = 'markers'
@@ -38,6 +38,6 @@ export default class MarkerLayer extends VectorLayer<VectorSource<Geometry>> imp
   }
 
   check (mapLayer: MapTileLayer): boolean {
-    return this.checkboxes.reduce((b, c) => b && c.checked, true) && mapLayer.layerData.dimensionId === this.dimensionId
+    return allCheckboxes(this.checkboxes) && mapLayer.layerData.dimensionId === this.dimensionId
   }
 }

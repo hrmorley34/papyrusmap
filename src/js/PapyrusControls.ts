@@ -19,6 +19,8 @@ export class Checkbox {
   appliesToLayer: AnyLayerCheckFunction
   papyrusControls: PapyrusControls | null = null
 
+  get visible (): boolean { return this.element.style.display !== 'none' }
+
   /**
    * @param label The text next to the checkbox
    * @param name The internal name of the control. Must be unique
@@ -60,6 +62,54 @@ export class Checkbox {
       false
     )
   }
+
+  handleLayerChange (layer: MapTileLayer): boolean {
+    if (this.showsForLayer !== null) { this.element.style.display = this.showsForLayer(layer) ? '' : 'none' }
+    return this.visible
+  }
+}
+
+export class CheckboxGroup {
+  element: HTMLFormElement
+  checkboxes: Checkbox[]
+  papyrusControls: PapyrusControls | null = null
+
+  get visible (): boolean { return this.element.style.display !== 'none' }
+
+  constructor () {
+    this.element = document.createElement('form')
+    this.element.style.display = 'none'
+
+    this.element.appendChild(document.createElement('hr'))
+
+    this.checkboxes = []
+  }
+
+  addCheckbox (checkbox: Checkbox): void {
+    this.checkboxes.push(checkbox)
+    this.element.appendChild(checkbox.element)
+
+    if (this.papyrusControls !== null) {
+      checkbox.setControls(this.papyrusControls)
+      this.handleLayerChange(this.papyrusControls.currentSelectedTileLayer)
+    }
+  }
+
+  setControls (papyrusControls: PapyrusControls): void {
+    this.papyrusControls = papyrusControls
+
+    this.handleLayerChange(papyrusControls.currentSelectedTileLayer)
+    this.checkboxes.forEach(c => c.setControls(papyrusControls))
+  }
+
+  handleLayerChange (layer: MapTileLayer): boolean {
+    const any = this.checkboxes
+      .map(c => c.handleLayerChange(layer))
+      .reduce((b, e) => b || e, false)
+
+    this.element.style.display = any ? '' : 'none'
+    return this.visible
+  }
 }
 
 export default class PapyrusControls extends Control {
@@ -70,7 +120,7 @@ export default class PapyrusControls extends Control {
   locationElement: HTMLDivElement
   radios: HTMLInputElement[]
 
-  markers: Checkbox
+  checkboxGroups: CheckboxGroup[]
 
   currentSelectedLayer: string | null
   rememberedCenters: { [x: string]: Coordinate | undefined }
@@ -120,11 +170,7 @@ export default class PapyrusControls extends Control {
     this.rememberedZoom = {}
     this.radios = []
 
-    this.cardBodyElement.appendChild(document.createElement('hr'))
-
-    this.markers = new Checkbox('Players', 'markers', null, (layer) => layer.layerType === 'markers')
-    this.cardBodyElement.appendChild(this.markers.element)
-    this.markers.setControls(this)
+    this.checkboxGroups = []
 
     this.cardBodyElement.appendChild(document.createElement('hr'))
 
@@ -208,36 +254,38 @@ export default class PapyrusControls extends Control {
 
     if (this.currentSelectedLayer !== layerKey) {
       const runtimeLayers = map.getLayers()
-      const olLayer = this.getTileLayerByKey(layerKey)
-      if (olLayer?.layerKey === undefined) return
-      const layer = olLayer.layerData
+      const layer = this.getTileLayerByKey(layerKey)
+      if (layer?.layerKey === undefined) return
+      const layerData = layer.layerData
 
-      mapElement.style.background = layer.background ?? DEFAULT_BACKGROUND
+      mapElement.style.background = layerData.background ?? DEFAULT_BACKGROUND
 
       runtimeLayers.forEach(function (this: PapyrusControls, runtimeLayer: BaseLayer) {
         if ((runtimeLayer as DataLayer).layerType === undefined) return
         const runtimeDataLayer = runtimeLayer as DataLayer
-        runtimeDataLayer.setVisible(runtimeDataLayer.check(olLayer))
+        runtimeDataLayer.setVisible(runtimeDataLayer.check(layer))
       })
 
       // const oldFocusGroup = this.currentSelectedLayer?.substring(0, 4) ?? null
       // const newFocusGroup = layerKey.substring(0, 4)
       const oldFocusGroup = this.currentSelectedTileLayer?.layerData?.dimensionId ?? null
-      const newFocusGroup = layer.dimensionId
+      const newFocusGroup = layerData.dimensionId
 
       if (oldFocusGroup !== null) { this.rememberedCenters[oldFocusGroup] = view.getCenter() }
       // set back to where we were, or refocus the map to 0, 0
       view.setCenter(this.rememberedCenters[newFocusGroup] ?? [0, 0])
 
       if (oldFocusGroup !== null) { this.rememberedZoom[oldFocusGroup] = view.getZoom() }
-      view.setMinZoom(layer.minNativeZoom - config.globalMinZoom)
-      view.setMaxZoom(layer.maxNativeZoom - config.globalMinZoom)
+      view.setMinZoom(layerData.minNativeZoom - config.globalMinZoom)
+      view.setMaxZoom(layerData.maxNativeZoom - config.globalMinZoom)
       // set back to where we were, or rezoom the map to minimum zoom
-      view.setZoom(this.rememberedZoom[newFocusGroup] ?? layer.minNativeZoom - config.globalMinZoom)
+      view.setZoom(this.rememberedZoom[newFocusGroup] ?? layerData.minNativeZoom - config.globalMinZoom)
 
       // this.radios.forEach((elem) => { elem.checked = (elem.value === layerKey) })
 
       this.currentSelectedLayer = layerKey
+
+      this.checkboxGroups.forEach((group) => group.handleLayerChange(layer))
     }
   }
 
@@ -251,5 +299,13 @@ export default class PapyrusControls extends Control {
       if (check !== null && !check(runtimeDataLayer)) return
       runtimeDataLayer.setVisible(runtimeDataLayer.check(this.currentSelectedTileLayer))
     }.bind(this))
+  }
+
+  createCheckboxGroup (this: PapyrusControls): CheckboxGroup {
+    const group = new CheckboxGroup()
+    this.checkboxGroups.push(group)
+    this.cardBodyElement.appendChild(group.element)
+    group.setControls(this)
+    return group
   }
 }

@@ -11,7 +11,7 @@ import * as ol_style from 'ol/style'
 import TileGrid from 'ol/tilegrid/TileGrid'
 import '~ol/ol.css'
 
-import PapyrusControls from './PapyrusControls'
+import PapyrusControls, { Checkbox } from './PapyrusControls'
 import { Data, makeConstants, PlayersData } from './types'
 import MapTileLayer from './MapTileLayer'
 import MarkerLayer from './MarkerLayer'
@@ -48,7 +48,7 @@ async function main (): Promise<void> {
 
   // Construct the tile grid using the desired maximum and minimum extents listed above,
   // set the origin to [0, 0] (the center of the map), and the calculated resolutions array.
-  const tilegrid = new TileGrid({
+  const tileGrid = new TileGrid({
     extent: [
       c.minimumExtentSize,
       c.minimumExtentSize,
@@ -84,13 +84,15 @@ async function main (): Promise<void> {
   Object.keys(layers)
     .sort()
     .forEach(function (layerKey: string, idx: number) {
-      const tileLayer = new MapTileLayer(layerKey, layers[layerKey], { projection, tileGrid: tilegrid })
+      const tileLayer = new MapTileLayer(layerKey, layers[layerKey], { projection, tileGrid })
       map.addLayer(tileLayer)
       papyrusControls.addLayer(tileLayer)
     })
 
-  // const firstLayerKey = Object.keys(layers).sort()[0]
-  // map.getTargetElement().style.background = layers[firstLayerKey].background ?? DEFAULT_BACKGROUND
+  const globalGroup = papyrusControls.createCheckboxGroup()
+
+  const markersCheck = new Checkbox('Players', 'markers', null, (layer) => layer.layerType === 'markers')
+  globalGroup.addCheckbox(markersCheck)
 
   if (typeof (playersData) !== 'undefined') {
     const playerFeatures: Array<Array<Feature<Point>>> = [[], [], []]
@@ -119,13 +121,13 @@ async function main (): Promise<void> {
 
       playerFeature.setStyle(style)
 
+      // add to the correct array/layer for the dimension
       playerFeatures[player.dimensionId].push(playerFeature)
-    // add to the correct array/layer for the dimension
     }
 
     for (let dimensionId = 0; dimensionId < 3; dimensionId++) {
       const vectorLayer = new MarkerLayer(`players_dim${dimensionId}`, playerFeatures[dimensionId], dimensionId)
-      vectorLayer.addCheckbox(papyrusControls.markers.checkbox)
+      vectorLayer.addCheckbox(markersCheck.checkbox)
 
       if (dimensionId !== 0) {
         // initially display only overworld players
