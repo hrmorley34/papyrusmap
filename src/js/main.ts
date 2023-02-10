@@ -13,8 +13,10 @@ import '~ol/ol.css'
 
 import PapyrusControls, { Checkbox } from './PapyrusControls'
 import { Data, makeConstants, PlayersData } from './types'
+import CoordsLayer from './CoordsLayer'
 import MapTileLayer from './MapTileLayer'
 import MarkerLayer from './MarkerLayer'
+import SlimeLayer from './SlimeLayer'
 
 async function main (): Promise<void> {
   const data: Data = await fetch('layers.json')
@@ -60,6 +62,18 @@ async function main (): Promise<void> {
     tileSize: [c.tileSize, c.tileSize]
   })
 
+  const dataTileGrid = new TileGrid({
+    extent: [
+      c.minimumExtentSize,
+      c.minimumExtentSize,
+      c.maximumExtentSize,
+      c.maximumExtentSize
+    ],
+    origin: [0, 0],
+    resolutions: c.resolutions,
+    tileSize: [256, 256]
+  })
+
   const view = new View({
     projection,
     center: [0, 0],
@@ -93,6 +107,20 @@ async function main (): Promise<void> {
 
   const markersCheck = new Checkbox('Players', 'markers', null, (layer) => layer.layerType === 'markers')
   globalGroup.addCheckbox(markersCheck)
+
+  const overworldGroup = papyrusControls.createCheckboxGroup()
+
+  {
+    const slimeLayer = new SlimeLayer({ projection, tileGrid: dataTileGrid })
+    map.addLayer(slimeLayer)
+    const slimeCheck = new Checkbox(
+      'Slime chunks', 'slime',
+      (layer) => layer.layerData.dimensionId === 0,
+      (layer) => layer.layerType === 'data' && layer.layerKey === 'slime')
+    slimeCheck.checkbox.checked = false
+    overworldGroup.addCheckbox(slimeCheck)
+    slimeLayer.addCheckbox(slimeCheck.checkbox)
+  }
 
   if (typeof (playersData) !== 'undefined') {
     const playerFeatures: Array<Array<Feature<Point>>> = [[], [], []]
@@ -136,6 +164,17 @@ async function main (): Promise<void> {
 
       map.addLayer(vectorLayer)
     }
+  }
+
+  {
+    const coordsLayer = new CoordsLayer({ projection, tileGrid: dataTileGrid })
+    map.addLayer(coordsLayer)
+    const coordsCheck = new Checkbox(
+      'Chunk coordinates', 'coords', null,
+      (layer) => layer.layerType === 'data' && layer.layerKey === 'coords')
+    coordsCheck.checkbox.checked = false
+    globalGroup.addCheckbox(coordsCheck)
+    coordsLayer.addCheckbox(coordsCheck.checkbox)
   }
 }
 main().catch(reason => console.error(reason))

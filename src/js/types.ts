@@ -1,7 +1,9 @@
 import { AttributionLike } from 'ol/source/Source'
 
+import CoordsLayer from './CoordsLayer'
 import MapTileLayer from './MapTileLayer'
 import MarkerLayer from './MarkerLayer'
+import SlimeLayer from './SlimeLayer'
 
 export interface Layer {
   name: string
@@ -117,7 +119,7 @@ export interface Data {
   constants?: Constants
 }
 
-export type DataLayerKeyType = 'map' | 'markers'
+export type DataLayerKeyType = 'map' | 'markers' | 'data'
 
 export interface DataLayerContents {
   layerType: DataLayerKeyType
@@ -134,4 +136,4 @@ export function allCheckboxes (checkboxes: HTMLInputElement[]): boolean {
   return checkboxes.reduce((bool, check) => bool && check.checked, true)
 }
 
-export type DataLayer = MapTileLayer | MarkerLayer
+export type DataLayer = MapTileLayer | MarkerLayer | SlimeLayer | CoordsLayer
