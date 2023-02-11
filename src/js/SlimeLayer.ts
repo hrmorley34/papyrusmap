@@ -2,7 +2,7 @@ import TileLayer, { Options as TileLayerOptions } from 'ol/layer/WebGLTile'
 import DataTile, { Options as DataTileOptions } from 'ol/source/DataTile'
 import MapTileLayer from './MapTileLayer'
 
-import { allCheckboxes, DataLayerCheckable } from './types'
+import { DataLayerCheckableMixin, DataLayerContents, DataLayerCheckable } from './types'
 
 const size = 256 // one chunk
 const maxZoom = 20
@@ -69,23 +69,19 @@ export class SlimeTile extends DataTile {
   }
 }
 
-export default class SlimeLayer extends TileLayer implements DataLayerCheckable {
+class _SlimeLayer extends TileLayer implements DataLayerContents {
   layerType: 'data' = 'data'
   layerKey: 'slime' = 'slime'
 
   constructor (tileOptions?: DataTileOptions, options?: TileLayerOptions) {
     super({ source: new SlimeTile(tileOptions), ...options })
-    this.checkboxes = []
   }
 
-  checkboxes: HTMLInputElement[]
-
-  addCheckbox (checkbox: HTMLInputElement): void {
-    this.checkboxes.push(checkbox)
-    this.setVisible(this.getVisible() && checkbox.checked)
-  }
-
-  check (mapLayer: MapTileLayer): boolean {
-    return allCheckboxes(this.checkboxes) && mapLayer.layerData.dimensionId === 0
+  checkVisibleWithLayer (mapLayer: MapTileLayer): boolean {
+    return mapLayer.layerData.dimensionId === 0
   }
 }
+type SlimeLayer = _SlimeLayer & DataLayerCheckable
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+const SlimeLayer = DataLayerCheckableMixin(_SlimeLayer)
+export default SlimeLayer

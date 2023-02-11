@@ -2,7 +2,7 @@ import TileLayer, { Options as TileLayerOptions } from 'ol/layer/WebGLTile'
 import DataTile, { Options as DataTileOptions } from 'ol/source/DataTile'
 import MapTileLayer from './MapTileLayer'
 
-import { allCheckboxes, DataLayerCheckable } from './types'
+import { DataLayerCheckableMixin, DataLayerContents, DataLayerCheckable } from './types'
 
 const size = 256 // one chunk
 const maxZoom = 20
@@ -55,23 +55,17 @@ export class CoordsTile extends DataTile {
   }
 }
 
-export default class CoordsLayer extends TileLayer implements DataLayerCheckable {
+class _CoordsLayer extends TileLayer implements DataLayerContents {
   layerType: 'data' = 'data'
   layerKey: 'coords' = 'coords'
 
   constructor (tileOptions?: DataTileOptions, options?: TileLayerOptions) {
     super({ source: new CoordsTile(tileOptions), ...options })
-    this.checkboxes = []
   }
 
-  checkboxes: HTMLInputElement[]
-
-  addCheckbox (checkbox: HTMLInputElement): void {
-    this.checkboxes.push(checkbox)
-    this.setVisible(this.getVisible() && checkbox.checked)
-  }
-
-  check (mapLayer: MapTileLayer): boolean {
-    return allCheckboxes(this.checkboxes)
-  }
+  checkVisibleWithLayer (mapLayer: MapTileLayer): boolean { return true }
 }
+type CoordsLayer = _CoordsLayer & DataLayerCheckable
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+const CoordsLayer = DataLayerCheckableMixin(_CoordsLayer)
+export default CoordsLayer

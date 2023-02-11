@@ -125,7 +125,7 @@ export interface DataLayerContents {
   layerType: DataLayerKeyType
   layerKey: string
 
-  check: (mapLayer: MapTileLayer) => boolean
+  checkVisibleWithLayer: (mapLayer: MapTileLayer) => boolean
 }
 
 export interface DataLayerCheckable extends DataLayerContents {
@@ -134,6 +134,30 @@ export interface DataLayerCheckable extends DataLayerContents {
 
 export function allCheckboxes (checkboxes: HTMLInputElement[]): boolean {
   return checkboxes.reduce((bool, check) => bool && check.checked, true)
+}
+
+interface GetSetVisible {
+  setVisible: (_: boolean) => void
+  getVisible: () => boolean
+}
+
+type Constructor<T = {}> = new (...args: any[]) => T
+
+export function
+DataLayerCheckableMixin<TBase extends Constructor<DataLayerContents & GetSetVisible>>
+(Base: TBase): TBase & Constructor<DataLayerCheckable> {
+  return class DataLayerCheckboxMixin extends Base implements DataLayerCheckable {
+    checkboxes: HTMLInputElement[] = []
+
+    addCheckbox (checkbox: HTMLInputElement): void {
+      this.checkboxes.push(checkbox)
+      this.setVisible(this.getVisible() && checkbox.checked)
+    }
+
+    checkVisibleWithLayer = (mapLayer: MapTileLayer): boolean => {
+      return allCheckboxes(this.checkboxes) && super.checkVisibleWithLayer(mapLayer)
+    }
+  }
 }
 
 export type DataLayer = MapTileLayer | MarkerLayer | SlimeLayer | CoordsLayer

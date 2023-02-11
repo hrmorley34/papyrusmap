@@ -33,5 +33,5 @@ export default class MapTileLayer extends TileLayer<XYZ> implements DataLayerCon
     this.layerData = layer
   }
 
-  check (mapLayer: MapTileLayer): boolean { return mapLayer === this }
+  checkVisibleWithLayer (mapLayer: MapTileLayer): boolean { return mapLayer === this }
 }

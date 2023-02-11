@@ -263,7 +263,7 @@ export default class PapyrusControls extends Control {
       runtimeLayers.forEach(function (this: PapyrusControls, runtimeLayer: BaseLayer) {
         if ((runtimeLayer as DataLayer).layerType === undefined) return
         const runtimeDataLayer = runtimeLayer as DataLayer
-        runtimeDataLayer.setVisible(runtimeDataLayer.check(layer))
+        runtimeDataLayer.setVisible(runtimeDataLayer.checkVisibleWithLayer(layer))
       })
 
       // const oldFocusGroup = this.currentSelectedLayer?.substring(0, 4) ?? null
@@ -297,7 +297,7 @@ export default class PapyrusControls extends Control {
       const runtimeDataLayer = runtimeLayer as DataLayer
       if (runtimeDataLayer.layerType === undefined) return
       if (check !== null && !check(runtimeDataLayer)) return
-      runtimeDataLayer.setVisible(runtimeDataLayer.check(this.currentSelectedTileLayer))
+      runtimeDataLayer.setVisible(runtimeDataLayer.checkVisibleWithLayer(this.currentSelectedTileLayer))
     }.bind(this))
   }
 

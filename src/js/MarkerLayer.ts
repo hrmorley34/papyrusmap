@@ -5,9 +5,9 @@ import VectorLayer from 'ol/layer/Vector'
 import VectorSource from 'ol/source/Vector'
 
 import MapTileLayer from './MapTileLayer'
-import { allCheckboxes, DataLayerCheckable } from './types'
+import { DataLayerCheckableMixin, DataLayerContents, DataLayerCheckable } from './types'
 
-export default class MarkerLayer extends VectorLayer<VectorSource<Geometry>> implements DataLayerCheckable {
+class _MarkerLayer extends VectorLayer<VectorSource<Geometry>> implements DataLayerContents {
   layerType: 'markers' = 'markers'
   layerKey: string
   dimensionId: number
@@ -27,17 +27,13 @@ export default class MarkerLayer extends VectorLayer<VectorSource<Geometry>> imp
 
     this.layerKey = layerKey
     this.dimensionId = dimensionId
-
-    this.checkboxes = []
   }
 
-  checkboxes: HTMLInputElement[]
-
-  addCheckbox (checkbox: HTMLInputElement): void {
-    this.checkboxes.push(checkbox)
-  }
-
-  check (mapLayer: MapTileLayer): boolean {
-    return allCheckboxes(this.checkboxes) && mapLayer.layerData.dimensionId === this.dimensionId
+  checkVisibleWithLayer (mapLayer: MapTileLayer): boolean {
+    return mapLayer.layerData.dimensionId === this.dimensionId
   }
 }
+type MarkerLayer = _MarkerLayer & DataLayerCheckable
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+const MarkerLayer = DataLayerCheckableMixin(_MarkerLayer)
+export default MarkerLayer
